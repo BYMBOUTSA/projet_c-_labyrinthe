@@ -7,158 +7,158 @@
 
 class Graphe {
     private:
-        std::unordered_map<int, std::unordered_set<int>> A;
+        std::unordered_map<int, std::unordered_set<int>> adjacence;
         bool oriente;
 
     public:
-        Graphe(bool oriente = true) : oriente(oriente) {}
+        Graphe(bool estOriente = true) : oriente(estOriente) {}
 
-        void construire(std::unordered_map<int, std::unordered_set<int>> A) {
-            this->A = A;
+        void construire(std::unordered_map<int, std::unordered_set<int>> adjacence) {
+            this->adjacence = adjacence;
         }
 
-        void ajouterSommet(int x) {
-            if (A.find(x) == A.end()) {
-                A[x] = std::unordered_set<int>();
+        void ajouterSommet(int sommet) {
+            if (adjacence.find(sommet) == adjacence.end()) {
+                adjacence[sommet] = std::unordered_set<int>();
             }
         }
 
-        void ajouterArete(int x, int y) {
-            ajouterSommet(x);
-            ajouterSommet(y);
-            A[x].insert(y);
+        void ajouterArete(int sommet1, int sommet2) {
+            ajouterSommet(sommet1);
+            ajouterSommet(sommet2);
+            adjacence[sommet1].insert(sommet2);
             if (!oriente) {
-                A[y].insert(x);
+                adjacence[sommet2].insert(sommet1);
             }
         }
 
-        std::unordered_set<int> voisins(int x) {
-            return A[x];
+        std::unordered_set<int> voisins(int sommet) {
+            return adjacence[sommet];
         }
 
         std::vector<std::pair<int, int>> aretes() {
-            std::vector<std::pair<int, int>> L;
-            for (const auto& entry : A) {
-                int x = entry.first;
-                const auto& V = entry.second;
-                for (int v : V) {
-                    L.push_back(std::make_pair(x, v));
+            std::vector<std::pair<int, int>> listeAretes;
+            for (const auto& entree : adjacence) {
+                int sommet = entree.first;
+                const auto& voisins = entree.second;
+                for (int voisin : voisins) {
+                    listeAretes.push_back(std::make_pair(sommet, voisin));
                 }
             }
-            return L;
+            return listeAretes;
         }
 
-        bool arete(int x, int y) {
-            return A[y].count(x) > 0;
+        bool estArete(int sommet1, int sommet2) {
+            return adjacence[sommet1].count(sommet2) > 0;
         }
 
-        std::unordered_set<int> parcoursProf(int s, std::unordered_set<int>& vus) {
-            if (vus.count(s) == 0) {
-                vus.insert(s);
-                for (int v : voisins(s)) {
-                    parcoursProf(v, vus);
-                }
-            }
-            return vus;
-        }
-
-        std::unordered_map<int, int> parcoursCh(int s, std::unordered_map<int, int>& vus) {
-            if (vus.count(s) == 0) {
-                vus[s] = -1;
-                for (int v : voisins(s)) {
-                    parcoursCh(v, vus);
+        std::unordered_set<int> parcoursProfondeur(int sommet, std::unordered_set<int>& vus) {
+            if (vus.count(sommet) == 0) {
+                vus.insert(sommet);
+                for (int voisin : voisins(sommet)) {
+                    parcoursProfondeur(voisin, vus);
                 }
             }
             return vus;
         }
 
-        std::vector<int> chemins(int x, int y) {
+        std::unordered_map<int, int> parcoursChemin(int sommet, std::unordered_map<int, int>& vus) {
+            if (vus.count(sommet) == 0) {
+                vus[sommet] = -1;
+                for (int voisin : voisins(sommet)) {
+                    parcoursChemin(voisin, vus);
+                }
+            }
+            return vus;
+        }
+
+        std::vector<int> chemins(int sommet1, int sommet2) {
             std::unordered_map<int, int> vus;
-            vus = parcoursCh(x, vus);
-            std::vector<int> c;
-            if (vus.count(y) > 0) {
-                int s = y;
-                while (s != -1) {
-                    c.push_back(s);
-                    s = vus[s];
+            vus = parcoursChemin(sommet1, vus);
+            std::vector<int> chemin;
+            if (vus.count(sommet2) > 0) {
+                int sommet = sommet2;
+                while (sommet != -1) {
+                    chemin.push_back(sommet);
+                    sommet = vus[sommet];
                 }
             }
-            std::reverse(c.begin(), c.end());
-            return c;
+            std::reverse(chemin.begin(), chemin.end());
+            return chemin;
         }
 
-        bool existeChemin(int x, int y) {
+        bool existeChemin(int sommet1, int sommet2) {
             std::unordered_set<int> vus;
-            vus = parcoursProf(x, vus);
-            return vus.count(y) > 0;
+            vus = parcoursProfondeur(sommet1, vus);
+            return vus.count(sommet2) > 0;
         }
 
-        std::unordered_map<int, int> parcoursLarg(int s) {
-            std::unordered_map<int, int> dist;
-            std::unordered_set<int> cour;
-            std::unordered_set<int> suiv;
-            cour.insert(s);
-            int currentDist = 0;
-            while (!cour.empty()) {
-                int node = *(cour.begin());
-                cour.erase(cour.begin());
-                dist[node] = currentDist;
-                currentDist++;
-                for (int v : voisins(node)) {
-                    if (dist.count(v) == 0) {
-                        suiv.insert(v);
+        std::unordered_map<int, int> parcoursLargeur(int sommet) {
+            std::unordered_map<int, int> distances;
+            std::unordered_set<int> courant;
+            std::unordered_set<int> suivant;
+            courant.insert(sommet);
+            int distanceCourante = 0;
+            while (!courant.empty()) {
+                int noeud = *(courant.begin());
+                courant.erase(courant.begin());
+                distances[noeud] = distanceCourante;
+                distanceCourante++;
+                for (int voisin : voisins(noeud)) {
+                    if (distances.count(voisin) == 0) {
+                        suivant.insert(voisin);
                     }
                 }
-                if (cour.empty()) {
-                    cour = suiv;
-                    suiv.clear();
+                if (courant.empty()) {
+                    courant = suivant;
+                    suivant.clear();
                 }
             }
-            return dist;
+            return distances;
         }
 
-        std::unordered_map<int, int> parcoursLargChemin(int s) {
+        std::unordered_map<int, int> parcoursLargeurChemin(int sommet) {
             std::unordered_map<int, int> vus;
-            std::unordered_set<int> cour;
-            std::unordered_set<int> suiv;
-            cour.insert(s);
-            while (!cour.empty()) {
-                int node = *(cour.begin());
-                cour.erase(cour.begin());
-                for (int v : voisins(node)) {
-                    if (vus.count(v) == 0) {
-                        suiv.insert(v);
-                        vus[v] = node;
+            std::unordered_set<int> courant;
+            std::unordered_set<int> suivant;
+            courant.insert(sommet);
+            while (!courant.empty()) {
+                int noeud = *(courant.begin());
+                courant.erase(courant.begin());
+                for (int voisin : voisins(noeud)) {
+                    if (vus.count(voisin) == 0) {
+                        suivant.insert(voisin);
+                        vus[voisin] = noeud;
                     }
                 }
-                if (cour.empty()) {
-                    cour = suiv;
-                    suiv.clear();
+                if (courant.empty()) {
+                    courant = suivant;
+                    suivant.clear();
                 }
             }
             return vus;
         }
 
-        std::vector<int> cheminsLarg(int x, int y) {
+        std::vector<int> cheminsLargeur(int sommet1, int sommet2) {
             std::unordered_map<int, int> vus;
-            vus = parcoursLargChemin(x);
-            std::vector<int> c;
-            if (vus.count(y) > 0) {
-                int s = y;
-                while (s != -1) {
-                    c.push_back(s);
-                    s = vus[s];
+            vus = parcoursLargeurChemin(sommet1);
+            std::vector<int> chemin;
+            if (vus.count(sommet2) > 0) {
+                int sommet = sommet2;
+                while (sommet != -1) {
+                    chemin.push_back(sommet);
+                    sommet = vus[sommet];
                 }
             }
-            std::reverse(c.begin(), c.end());
-            return c;
+            std::reverse(chemin.begin(), chemin.end());
+            return chemin;
         }
 
-        int distance(int x, int y) {
-            std::unordered_map<int, int> dist;
-            dist = parcoursLarg(x);
-            if (dist.count(y) > 0) {
-                return dist[y];
+        int distance(int sommet1, int sommet2) {
+            std::unordered_map<int, int> distances;
+            distances = parcoursLargeur(sommet1);
+            if (distances.count(sommet2) > 0) {
+                return distances[sommet2];
             }
             return -1;
         }
@@ -180,15 +180,15 @@ int main() {
         std::cout << voisin << " ";
     }
     std::cout << std::endl;
-    std::cout << graphe.arete(2, 4) << std::endl;
-    std::unordered_set<int> parcoursProf = graphe.parcoursProf(1);
-    for (int sommet : parcoursProf) {
+    std::cout << graphe.estArete(2, 4) << std::endl;
+    std::unordered_set<int> parcoursProfondeur = graphe.parcoursProfondeur(1);
+    for (int sommet : parcoursProfondeur) {
         std::cout << sommet << " ";
     }
     std::cout << std::endl;
-    std::unordered_map<int, int> parcoursCh = graphe.parcoursCh(1);
-    for (const auto& entry : parcoursCh) {
-        std::cout << entry.first << ": " << entry.second << std::endl;
+    std::unordered_map<int, int> parcoursChemin = graphe.parcoursChemin(1);
+    for (const auto& entree : parcoursChemin) {
+        std::cout << entree.first << ": " << entree.second << std::endl;
     }
     std::vector<int> chemins = graphe.chemins(1, 5);
     for (int sommet : chemins) {
@@ -196,16 +196,16 @@ int main() {
     }
     std::cout << std::endl;
     std::cout << graphe.existeChemin(1, 5) << std::endl;
-    std::unordered_map<int, int> parcoursLarg = graphe.parcoursLarg(1);
-    for (const auto& entry : parcoursLarg) {
-        std::cout << entry.first << ": " << entry.second << std::endl;
+    std::unordered_map<int, int> parcoursLargeur = graphe.parcoursLargeur(1);
+    for (const auto& entree : parcoursLargeur) {
+        std::cout << entree.first << ": " << entree.second << std::endl;
     }
-    std::unordered_map<int, int> parcoursLargChemin = graphe.parcoursLargChemin(1);
-    for (const auto& entry : parcoursLargChemin) {
-        std::cout << entry.first << ": " << entry.second << std::endl;
+    std::unordered_map<int, int> parcoursLargeurChemin = graphe.parcoursLargeurChemin(1);
+    for (const auto& entree : parcoursLargeurChemin) {
+        std::cout << entree.first << ": " << entree.second << std::endl;
     }
-    std::vector<int> cheminsLarg = graphe.cheminsLarg(1, 5);
-    for (int sommet : cheminsLarg) {
+    std::vector<int> cheminsLargeur = graphe.cheminsLargeur(1, 5);
+    for (int sommet : cheminsLargeur) {
         std::cout << sommet << " ";
     }
     std::cout << std::endl;
